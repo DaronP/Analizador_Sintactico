@@ -1,0 +1,24 @@
+COMPILER Proyecto2
+
+CHARACTERS
+
+letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".
+digits = "0123456789".
+indent = chr(9).
+space = chr(32).
+eol = chr(10).
+
+KEYWORDS
+
+while = "while".
+for = "for".
+if = "if".
+switch = "switch".
+case = "case".
+
+TOKENS
+
+ident = letters{letters|digits} EXCEPT KEYWORDS.
+number = digits{digits}.
+
+END Proyecto2
