@@ -34,6 +34,34 @@ def sacar_lista(lista, pila = []):
             res.append([pila[j], pila[j + 1], pila[j + 2]])
     return res
 
+def sacar_lista2(lista):
+    str_pila = ""
+    for l in lista:
+        str_pila += l
+    return(str_pila)
+
+def remS(lista):
+    result = []
+
+    for i in lista:
+        result.append(i)
+    
+    result.pop(0)
+    result.pop(0)
+    result.pop(0)
+    return sacar_lista2(result)
+
+def production_to_func(prod):
+    prod = prod.split("\n")
+    pila = prod[0].split("(")
+    pila = pila[1]
+    pila = pila.replace(")","=")
+    nueva = "\t"+pila+sacar_lista2(prod[0])+"\n"
+    prod[0] = nueva
+    result = sacar_lista2(prod)
+
+    return result
+
 
 def cerr_e(trans, lim):
     if type(lim) is int:

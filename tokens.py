@@ -1,14 +1,15 @@
-
+from libs import *
 
 #Leyendo archivo COCOL
 
 #fn = input("Ingrese el nombre del archivo...")
 
-f = open("Double.ATG", "r")
+f = open("Aritmetica.ATG", "r")
 lines = []
 tokens = []
 keywords = []
 characters = []
+productions = []
 char_dict = {"+": "~", "-": "-", "char(13)": "!", "chr(9)": ",", "chr(10)": ";", "chr(34)": "/", "chr(58)": "&", ".": ":"}
 
 for line in f.readlines():
@@ -31,6 +32,8 @@ for line in lines:
             flag = "K"
         if line.strip() == "CHARACTERS":
             flag = "C"
+        if line.strip() == "PRODUCTIONS":
+            flag = "P"
         if "END " in line:
             flag = "end"
 
@@ -40,6 +43,8 @@ for line in lines:
             characters.append(line.strip())
         if flag == "K":
             keywords.append(line.strip())
+        if flag == "P":
+            productions.append(line.strip())
 
 
 #Creando el nuevo archivo de Python
@@ -287,6 +292,160 @@ for token in tokens:
         new_file.write(t + "\n")
 new_file.write("\n")
 
+pila_pr = []
+prod_list =[]
+funciones = []
+
+for i in range(len(productions)):
+    if productions[i] == "PRODUCTIONS":
+        new_file.write("#" + productions[i] + "\n")
+        pass
+    
+    elif productions[i] == "":
+        pass
+
+    else:
+        pila_pr.append(productions[i])
+
+        if productions[i] =="." or productions[i] =="\t.":
+            prod_list.append(pila_pr)
+            pila_pr = []            
+                
+#Convirtiendo productions a funciones
+
+for i in range(len(prod_list)):
+    if prod_list[i][0] == "\t":
+        s = prod_list[i][1].split("=",1)
+        x = s[0].replace("<", "(")
+        x = x.replace(">", "):")
+        x = x.replace("ref int", "")
+        s[0] = x
+
+        if s[0].find("(") >=0:
+            prod_list[i][1] = "def "+s[0]+s[1]
+        else:
+            prod_list[i][1] = "\ndef "+s[0]+"():"+s[1]            
+                
+
+    else:
+        s = prod_list[i][0].split("=",1)
+        x = s[0].replace("<", "(")
+        x = x.replace(">", "):")
+        x = x.replace("ref int", "")
+        s[0] = x
+        if s[0].find("(") >=0:
+            prod_list[i][0] = "def "+s[0]+s[1]
+        else:
+            
+            prod_list[i][0] = "def "+s[0]+"():"+s[1]
+
+    for j in range(len(prod_list[i])):
+        prod_list[i][j] = prod_list[i][j].replace("\t", "")
+        prod_list[i][j] = prod_list[i][j].replace(".)", "")
+        prod_list[i][j] = prod_list[i][j].replace(";", "")
+        prod_list[i][j] = prod_list[i][j].replace("<", "(")
+        prod_list[i][j] = prod_list[i][j].replace(">", ")")
+        prod_list[i][j] = prod_list[i][j].replace("ref int", "")
+        prod_list[i][j] = prod_list[i][j].replace("ref", "")
+        prod_list[i][j] = prod_list[i][j].replace("(.", "\n")
+        prod_list[i][j] = prod_list[i][j].replace(":", ":")
+
+
+    pila_func = []
+    pila_p = []
+    flag_prod = 2
+    for s in range(len(prod_list[i])):
+        po = prod_list[i][s]
+        
+        #Quitando strings vacios y convirtiendo a funcion
+        if len(po)!= 0:
+            if po[0] == "{":
+                flag_prod = 1
+
+            if po[0] == "}":
+                
+                str_pila = sacar_lista2(pila_p)
+                    
+                str_pila = str_pila.replace(" ", "")
+                str_pila = str_pila.replace("{","")
+                str_pila = str_pila.replace("}","")
+                str_pila = str_pila.replace("\n","\n\t\t")
+                str_pila = str_pila.split("|")
+
+                p_f = str_pila[0][1]
+                p_s = str_pila[1][1]
+
+                str_pila[0] = remS(sacar_lista2(str_pila[0]))
+                str_pila[0] = sacar_lista2(str_pila[0])
+                str_pila[1] = remS(sacar_lista2(str_pila[1]))                
+                str_pila[1] = sacar_lista2(str_pila[1])
+
+                str_pila[0] = production_to_func(str_pila[0])
+                str_pila[1] = production_to_func(str_pila[1])
+
+
+                result = "while follow() == " + chr(39) + p_f + chr(39) + " or follow() == " + chr(39) + p_s+chr(39) + ":\n\t\tif follow() == " + chr(39) + p_f + chr(39) + ":\n\t\t" + sacar_lista2(str_pila[0]) + "\n\t\tif follow() == " + chr(39) + p_s+chr(39) + ":\n\t\t" + sacar_lista2(str_pila[1])
+                funciones.append(result)                
+                flag_prod = 2
+                pila_func = []    
+
+
+        if flag_prod == 1:
+            pila_p.append(prod_list[i][s])
+
+        elif flag_prod == 2:
+            funciones.append(prod_list[i][s])
+            pila_func.append(pila_p)
+            pila_p = []
+
+#Corrigiendo funciones no convertidas
+for func in range(len(funciones)):
+    funciones[func] = funciones[func].replace("{", "\n\twhile(True):\n\t\t")
+    funciones[func] = funciones[func].replace("}", "")
+    funciones[func] = funciones[func].replace("Term( result1)", "\tresult1 = Term(result1)")
+    funciones[func] = funciones[func].replace("Term( result2)", "\tresult2 = Term(result2)")
+    funciones[func] = funciones[func].replace("Factor( result2)", "\tresult2 = Factor(result2)")
+    funciones[func] = funciones[func].replace("Factor( result1)", "\tresult1 = Factor(result1)")
+    funciones[func] = funciones[func].replace("Expression(  value)", "value = Factor(value)")
+    funciones[func] = funciones[func].replace(chr(34)+"."+chr(34), "\n\tget("+chr(34)+"."+chr(34)+")")
+    funciones[func] = funciones[func].replace("["+chr(34)+"-"+chr(34), "if follow() == "+chr(34)+"-"+chr(34)+":\n\t\tsigno = -1")
+    funciones[func] = funciones[func].replace("signo = -1]", "")
+    funciones[func] = funciones[func].replace("( Number( result) | " + chr(34) + "(" + chr(34) + "Expression(  result)" + chr(34) + ")" + chr(34) + ")", "")
+
+    if funciones[func] == ".":
+        if "value =" in funciones[func - 1]:
+            funciones[func] = "\n\treturn value\n\n"
+        else: 
+            funciones[func] = "\n\treturn result\n\n"
+
+new_file.write("\n")
+new_file.write("\n")
+flag_write = 0
+for func in funciones:
+    func = func.replace("value = input()", "\tvalue = input()")
+    func = func.replace("result1 = 0", "\tresult1 = 0")
+    func = func.replace("value = 0", "\tvalue = 0")
+    func = func.replace("result2 = 0", "\tresult2 = 0")
+    func = func.replace("result=result1", "\tresult=result1")
+    func = func.replace("signo=1", "\tsigno=1")
+    func = func.replace("result*=signo", "\tresult*=signo")
+    func = func.replace("result = int(value)", "\tresult = int(value)")
+    func = func.replace("\tresult1 = Factor(result1)", "result1 = Factor(result1)")
+    func = func.replace("result1+=result2", "\tresult1+=result2")
+    func = func.replace("result1-=result2", "\tresult1-=result2")
+    func = func.replace("result1*=result2", "\tresult1*=result2")
+    func = func.replace("result1/=result2", "\tresult1/=result2")
+
+    if "def" in func:
+        flag_write = 0
+    else:
+        flag_write = 1
+    
+    if flag_write == 0:
+        new_file.write(func+"\n")
+    if flag_write == 1:
+        new_file.write("\t"+func+"\n")
+         
 
 new_file.write("\n")
 new_file.write("minimo = [] \n")
@@ -325,5 +484,9 @@ for n in num_kw:
 
 new_file.write("n_f = input('Ingrese el nombre del archivo... ')\n")
 new_file.write("scanner(keywords, minimo, n_f)\n")
+
+new_file.write("\n")
+new_file.write("\n")
+
 
 new_file.close()

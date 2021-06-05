@@ -49,5 +49,18 @@ Factor<ref int result> =	(.signo=1.)
 	.
 	
 Number<ref int result> =  (.result = int(value).)
-
+.
 END Aritmetica
+
+
+
+
+
+
+
+
+
+
+
+
+
